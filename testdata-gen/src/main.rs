@@ -12,10 +12,10 @@ use error::Error;
 use log::*;
 use parity_scale_codec::{Decode, Encode};
 use runtime::{
-    substrate_subxt::PairSigner, BtcAddress, ErrorCode as PolkaBtcErrorCode,
-    ExchangeRateOraclePallet, FeePallet, FixedPointNumber, FixedPointTraits::*, FixedU128, H256Le,
-    PolkaBtcProvider, PolkaBtcRuntime, RedeemPallet, StakedRelayerPallet,
-    StatusCode as PolkaBtcStatusCode, TimestampPallet,
+    substrate_subxt::PairSigner, AccountId, BtcAddress, DotBalancesPallet,
+    ErrorCode as PolkaBtcErrorCode, ExchangeRateOraclePallet, FeePallet, FixedPointNumber,
+    FixedPointTraits::*, FixedU128, H256Le, PolkaBtcProvider, PolkaBtcRuntime, RedeemPallet,
+    StakedRelayerPallet, StatusCode as PolkaBtcStatusCode, TimestampPallet,
 };
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
@@ -129,6 +129,8 @@ enum SubCommand {
     SetReplacePeriod(SetReplacePeriodInfo),
     /// Set relayer maturity period.
     SetRelayerMaturityPeriod(SetRelayerMaturityPeriodInfo),
+    /// Transfer DOT collateral
+    TransferDot(TransferDotInfo),
 }
 
 #[derive(Clap)]
@@ -472,6 +474,17 @@ struct VoteOnStatusUpdateJsonRpcRequest {
     pub approve: bool,
 }
 
+#[derive(Clap, Encode, Decode, Debug)]
+struct TransferDotInfo {
+    /// Account id
+    #[clap(long)]
+    pub account_id: AccountId,
+
+    /// DOT amount
+    #[clap(long)]
+    pub amount: u128,
+}
+
 async fn get_btc_rpc(
     wallet_name: String,
     bitcoin_opts: bitcoin::cli::BitcoinOpts,
@@ -706,6 +719,9 @@ async fn main() -> Result<(), Error> {
         }
         SubCommand::SetRelayerMaturityPeriod(info) => {
             provider.set_maturity_period(info.period).await?;
+        }
+        SubCommand::TransferDot(info) => {
+            provider.transfer_to(info.account_id, info.amount).await?;
         }
     }
 
